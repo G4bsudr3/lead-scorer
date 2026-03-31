@@ -2,8 +2,9 @@ __pycache__/
 *.pyc
 .env
 web/.env
-.streamlit/secrets.toml
+.streamlit/
 .venv/
 node_modules/
 dist/
+web/dist/
 *.log

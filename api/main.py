@@ -69,11 +69,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Lead Scorer API", lifespan=lifespan)
 
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+CORS_DOMAIN = os.getenv("CORS_DOMAIN", "bredasudre.com")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=rf"https?://(.*\.)?{CORS_DOMAIN.replace('.', r'\.')}(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
