@@ -2,16 +2,14 @@ FROM node:20-slim AS build
 
 WORKDIR /app
 
-ARG VITE_SUPABASE_URL
-ARG VITE_SUPABASE_KEY
-
-COPY web/package.json web/bun.lockb* ./
+COPY web/package.json web/package-lock.json* web/bun.lockb* ./
 RUN npm install
 
 COPY web/ .
 
-ENV VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
-ENV VITE_SUPABASE_KEY=${VITE_SUPABASE_KEY}
+# .env já contém VITE_SUPABASE_URL e VITE_SUPABASE_KEY
+# Essas são chaves públicas (anon key) — seguro incluir no build
+COPY web/.env .env
 
 RUN npm run build
 
