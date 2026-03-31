@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 // URL da API — aponta para o domínio público da API no EasyPanel
-const API_BASE = 'https://caseg4-api.t3xbnj.easypanel.host'
+export const API_BASE = 'https://caseg4-api.t3xbnj.easypanel.host'
 
 async function getToken(): Promise<string> {
   const { data } = await supabase.auth.getSession()

@@ -71,7 +71,7 @@ app = FastAPI(title="Lead Scorer API", lifespan=lifespan)
 
 CORS_DOMAIN = os.getenv("CORS_DOMAIN", "bredasudre.com")
 _cors_escaped = CORS_DOMAIN.replace(".", r"\.")
-_cors_regex = rf"https?://(.*\.)?{_cors_escaped}(:\d+)?"
+_cors_regex = rf"https?://(.*\.)?({_cors_escaped}|easypanel\.host)(:\d+)?"
 
 app.add_middleware(
     CORSMiddleware,

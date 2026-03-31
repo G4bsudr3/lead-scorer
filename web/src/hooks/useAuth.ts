@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { API_BASE } from '../lib/api'
 import type { User, Session } from '@supabase/supabase-js'
 
 interface UserProfile {
@@ -46,7 +47,7 @@ export function useAuth() {
   async function loadProfile(_userId: string, token: string) {
     try {
       // Load profile via API (uses service key, bypasses RLS)
-      const res = await fetch('/api/init', {
+      const res = await fetch(`${API_BASE}/api/init`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
