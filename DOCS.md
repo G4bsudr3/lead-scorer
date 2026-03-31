@@ -1,10 +1,10 @@
-# Lead Scorer — Documentacao Tecnica
+# Lead Scorer — Documentação Técnica
 
-> **Submissao do challenge:** [README.md](README.md)
+> **Submissão do challenge:** [README.md](README.md)
 
-Ferramenta de priorizacao inteligente de oportunidades de vendas para times comerciais distribuidos.
+Ferramenta de priorização inteligente de oportunidades de vendas para times comerciais distribuídos.
 
-O vendedor abre na segunda-feira de manha, ve seu pipeline e sabe exatamente onde focar.
+O vendedor abre na segunda-feira de manhã, vê seu pipeline e sabe exatamente onde focar.
 
 ## Stack
 
@@ -12,7 +12,7 @@ O vendedor abre na segunda-feira de manha, ve seu pipeline e sabe exatamente ond
 - **Backend/API:** Python + FastAPI
 - **Banco de dados:** Supabase (PostgreSQL + Auth + RLS)
 - **IA:** OpenAI GPT-4o-mini (explicações, recomendações, chat)
-- **Scoring:** Engine proprietária com 8 features ponderadas
+- **Scoring:** Engine proprietária com 8 fatores ponderados
 
 ## Como rodar
 
@@ -21,7 +21,7 @@ O vendedor abre na segunda-feira de manha, ve seu pipeline e sabe exatamente ond
 - Python 3.11+
 - Node.js 18+ ou Bun
 - Conta Supabase (ou instância self-hosted)
-- Chave API OpenAI (opcional — scoring funciona sem IA)
+- Chave da API OpenAI (opcional — o scoring funciona sem IA)
 
 ### 1. Backend (API)
 
@@ -67,8 +67,7 @@ psql $DATABASE_URL -f supabase/import_pipeline.sql
 ### 4. Docker (deploy)
 
 ```bash
-docker build -t lead-scorer .
-docker run -p 8501:8501 --env-file .env lead-scorer
+docker-compose up --build
 ```
 
 ### Variáveis de ambiente
@@ -79,7 +78,7 @@ docker run -p 8501:8501 --env-file .env lead-scorer
 | `SUPABASE_KEY` | Anon key (respeita RLS) |
 | `SUPABASE_SERVICE_KEY` | Service role key (scoring engine) |
 | `OPENAI_API_KEY` | Chave da API OpenAI |
-| `ALLOWED_ORIGINS` | Origens CORS (default: localhost) |
+| `CORS_DOMAIN` | Domínio para CORS (ex: `bredasudre.com` — aceita todos os subdomínios) |
 | `REFERENCE_DATE` | Data de referência para scoring. Use `auto` para produção (today). Default: `2017-12-31` (dataset) |
 
 ## Lógica de Scoring
@@ -147,12 +146,10 @@ Os vendedores veem as oportunidades organizadas em 3 zonas:
 - **Análise IA**: recomendação de próximo passo por deal (GPT-4o-mini)
 - **Chat IA**: perguntas livres sobre pipeline, performance e estratégia
 - **Criar oportunidade**: formulário com vendedor, produto, conta e etapa
-- **Classificar**: marcar deal como Ganho (com valor) ou Perdido
+- **Classificar deal**: marcar como Ganho (com valor) ou Perdido diretamente no card
 - **Filtros**: por etapa, produto, vendedor, escritório (colapsáveis com badge de contagem)
 - **Export CSV**: download dos deals filtrados
-- **Comparar oportunidades**: side-by-side de 2 deals com recomendação automática
-- **Criar oportunidade**: formulário com vendedor, produto, conta, etapa
-- **Classificar deal**: marcar como Ganho (com valor) ou Perdido diretamente no card
+- **Comparar oportunidades**: *side-by-side* de 2 deals com recomendação automática
 - **Dark/Light mode**: toggle na sidebar com persistência no localStorage
 
 ### Para o gestor
@@ -165,28 +162,28 @@ Os vendedores veem as oportunidades organizadas em 3 zonas:
 ### Chat IA (flutuante)
 - Botão fixo no canto inferior direito
 - Contexto completo do pipeline injetado (métricas, zonas, top deals, distribuições, critérios de score)
-- Guardrails contra prompt injection, invenção de dados e vazamento de informações entre roles
+- Guardrails contra *prompt injection*, invenção de dados e vazamento de informações entre roles
 - Output em HTML formatado (não markdown)
 - Sugestões de perguntas para onboarding
 
 ### Segurança
 - Auth OTP por email (Supabase Auth)
-- Auto-criação de perfil no primeiro login como admin (para facilitar avaliação — em produção, seria "vendedor")
+- Auto-criação de perfil no primeiro login como admin (para facilitar a avaliação — em produção, seria "vendedor")
 - 3 roles: admin, vendedor, manager
 - RLS no banco de dados com 10 policies + 3 helper functions
 - Service key apenas no backend (nunca exposta ao frontend)
 - Validação de token JWT em todos os endpoints com cache de 5min
-- CORS configurável via env var (não wildcard)
+- CORS configurável via variável de ambiente (regex por domínio, não wildcard)
 
 ## Limitações
 
 - **Dataset estático**: os dados são de 2016-2017. Não há atualização em tempo real. Em produção, conectaria a um CRM.
 - **Win rates homogêneos**: setores e produtos têm taxas de conversão muito similares (61-65%). A diferenciação nesse eixo é limitada pelo dataset.
-- **1.425 deals sem conta**: ~68% dos deals ativos não têm conta definida. O scoring penaliza parcialmente mas não consegue usar account_fit e repeat_customer de forma eficaz.
-- **Score máximo ~77**: o teto teórico com esse dataset é ~85. Nenhum deal combina todos os fatores no máximo simultaneamente.
-- **Testes**: 22 testes de validação (10 scoring + 12 pipeline) passam, mas não são testes unitários tradicionais (pytest).
+- **1.425 deals sem conta**: ~68% dos deals ativos não têm conta definida. O scoring penaliza parcialmente, mas não consegue usar account_fit e repeat_customer de forma eficaz.
+- **Score máximo ~78**: o teto teórico com esse dataset é ~85. Nenhum deal combina todos os fatores no máximo simultaneamente.
+- **Testes**: 22 testes de validação (10 de scoring + 12 de pipeline) passam, mas não são testes unitários tradicionais (pytest).
 - **Cache em memória**: adequado para single-worker. Multi-worker precisaria de Redis ou similar.
-- **IA usa `dangerouslySetInnerHTML`**: output da OpenAI renderizado como HTML. Risco controlado (fonte confiável) mas não ideal.
+- **IA usa `dangerouslySetInnerHTML`**: output da OpenAI renderizado como HTML. Risco controlado (fonte confiável), mas não ideal.
 
 ## Correções aplicadas nos dados
 
@@ -213,7 +210,10 @@ lead-scorer/
 ├── supabase/
 │   ├── schema.sql            # 5 tabelas + RLS + constraints
 │   └── import_pipeline.sql   # Mapeamento CSV → FKs
-├── Dockerfile
+├── Dockerfile.api            # Docker do backend (FastAPI)
+├── Dockerfile.web            # Docker do frontend (React + Nginx)
+├── docker-compose.yml        # Orquestração dos serviços
+├── nginx.conf                # Proxy reverso (SPA + API)
 ├── requirements.txt
 ├── .env.example
 └── PROCESS_LOG.md
