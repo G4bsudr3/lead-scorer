@@ -7,9 +7,13 @@ RUN npm install
 
 COPY web/ .
 
-# .env já contém VITE_SUPABASE_URL e VITE_SUPABASE_KEY
-# Essas são chaves públicas (anon key) — seguro incluir no build
-COPY web/.env .env
+# Recebe as variáveis como Build Args (passados pelo EasyPanel)
+ARG SUPABASE_URL
+ARG SUPABASE_KEY
+
+# Vite precisa de VITE_ prefix — mapeia os args para o formato correto
+ENV VITE_SUPABASE_URL=$SUPABASE_URL
+ENV VITE_SUPABASE_KEY=$SUPABASE_KEY
 
 RUN npm run build
 
