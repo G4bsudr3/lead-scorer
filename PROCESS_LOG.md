@@ -1,5 +1,7 @@
 # Process Log — Lead Scorer (Challenge 003)
 
+**Tempo total de desenvolvimento:** 4h37min (18:23 — 23:00, 30/03/2026)
+
 ## Ferramentas utilizadas
 
 | Ferramenta | Uso | Etapa |

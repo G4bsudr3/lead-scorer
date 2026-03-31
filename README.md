@@ -1,199 +1,116 @@
-# Lead Scorer
+# Submissao — Gabriel Sudre — Challenge 003
 
-Ferramenta de priorização inteligente de oportunidades de vendas para times comerciais distribuídos.
+> **Acesse a aplicacao:** [https://caseg4.bredasudre.com](https://caseg4.bredasudre.com)
+> Login com qualquer email via OTP. Documentacao tecnica: [DOCS.md](DOCS.md)
 
-O vendedor abre na segunda-feira de manhã, vê seu pipeline e sabe exatamente onde focar.
+## Sobre mim
 
-## Stack
+- **Nome:** Gabriel Breda Sudre
+- **LinkedIn:** www.linkedin.com/in/gabriel-breda-sudre
+- **Challenge escolhido:** 003 — Lead Scorer
 
-- **Frontend:** React 18 + TypeScript + Vite + Tailwind CSS
-- **Backend/API:** Python + FastAPI
-- **Banco de dados:** Supabase (PostgreSQL + Auth + RLS)
-- **IA:** OpenAI GPT-4o-mini (explicações, recomendações, chat)
-- **Scoring:** Engine proprietária com 8 features ponderadas
+## Executive Summary
 
-## Como rodar
+Construi uma plataforma web de priorizacao de oportunidades de vendas para um time de 35 vendedores distribuidos em escritorios regionais. A solucao usa um scoring engine com 8 features ponderadas (sigmoid, log scale, confidence weighting) para classificar 2.089 oportunidades ativas em zonas de prioridade, integra IA (GPT-4o-mini) para explicacoes e recomendacoes acionaveis, e oferece um chat assistente com contexto completo do pipeline. A principal recomendacao é que o vendedor abra a ferramenta segunda de manha, veja o "Foco Hoje" e saiba exatamente onde investir tempo, sem depender de intuicao ou análises manuais. 
+Toda a explicação do Score é fornecida diretamente no card do Deal, além de uma opção para comparar com outros Deals e ver qual deles faz mais sentido e porque. A aplicação foi desenvolvida com supabase como Backend para facilitar uma possível escalação futura e integração com uma ferramenta de CRM. Por se tratar de uma aplicação beta, todos usuários logados automáticamente assumem a rule de admin (as demais rules do sistema já estão configuradas).
 
-### Pré-requisitos
+---
 
-- Python 3.11+
-- Node.js 18+ ou Bun
-- Conta Supabase (ou instância self-hosted)
-- Chave API OpenAI (opcional — scoring funciona sem IA)
+## Solucao
 
-### 1. Backend (API)
+1. **Analise dos dados primeiro**: antes de codar, analisei a proposta e os 4 CSVs com o Claude Code, justamente para conseguir definir uma estratégia mais clara para completar o desafio. Fiquei cerca de 50 minutos na fase de planejamento de estratégia e arquitetura e, durante essa etapa identifiquei inconsistencias (typos, 1.425 deals sem conta), distribuicoes de stages, win rates homogeneos (61-65% em todos os setores) e precos com range extremo (R$55 a R$26.768). Isso definiu as decisoes de normalizacao.
 
-```bash
-cd lead-scorer
-cp .env.example .env
-# Preencha as variáveis no .env
+2. **Scoring iterativo (4 versoes)**: v1 comprimia scores entre 30-61. Identifiquei os problemas (sigmoid cliff, min-max dominado por outlier), corrigi com log scale e sigmoid suave (v2), validei com agente externo que identificou feedback loop e features duplicadas, e implementei correcoes finais (v3/v4). Basicamente, para definir o score criei uma V1 simples e depois de implementada, fui utilizando agentes externos (sem contexto) para avaliar a lógica. Todos os resultandos dessas análises eu passei ao agente principal e aplicamos o que fazia sentido.
 
-pip install -r requirements.txt
-python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
-```
+3. **Arquitetura de producao**: comecei com Streamlit para válidar a estrutruta (rapido mas travado com 2.089 deals), migrei para React + FastAPI + Supabase. Decisao custou um retrabalho mas entregou uma ferramenta que um vendedor nao-tecnico consegue usar e sem gargalos. A ideia de disponibilizar ela via WEB (VPS da Hostinger + Supabase Cloud) foi justamente para abstrair a necessidade de usuário não técnicos terem que instalar dependências e ferramentas para o funcionamento correto.
 
-### 2. Frontend (React)
+4. **IA como camada de valor, nao de decisao**: o scoring e deterministico e explicavel. A IA adiciona linguagem natural, recomendacoes de proximos passos e chat, mas nao substitui a logica. O ideal seria que tivesse uma descrição dos produtos e empresa para criar um RAG vetorial para a IA auxiliar no fechamento, dando sugestões mais alinhadas ao produto, no entanto, vejo como uma possível feature futura.
 
-```bash
-cd lead-scorer/web
-cp .env.example .env
-# Preencha VITE_SUPABASE_URL e VITE_SUPABASE_KEY
+### Resultados / Findings
 
-bun install  # ou npm install
-bun run dev  # ou npm run dev
-```
+- **2.089 oportunidades ativas** scoradas (range 38-78, media 51.6)
+- **8 features de scoring** com pesos validados por agente externo independente
+- **16 componentes React** com dark/light mode, comparacao side-by-side, health score do pipeline
+- **13 endpoints API** autenticados com CRUD completo
+- **3 roles** (admin/vendedor/manager) com visibilidade controlada via RLS
+- **22 testes de validacao** (10 scoring + 12 pipeline) passando
+- **Chat IA** com contexto completo: metricas, zonas, top deals, distribuicoes, criterios de score
+- **Deploy**: Docker + EasyPanel na Hostinger
+- **Tempo total**: 4h37min de desenvolvimento ativo
 
-### 3. Banco de dados (Supabase)
+### Recomendacoes
 
-```bash
-# 1. Criar projeto no Supabase
-# 2. Executar o schema:
-psql $DATABASE_URL -f supabase/schema.sql
+1. Conectar a um CRM real (Salesforce, HubSpot) para dados em tempo real, visto que, o dataset estático é a principal limitação.
+2. A/B test dos pesos de scoring com dados de conversão real do time.
+3. Adicionar feature de velocidade do deal (Prospecting → Engaging) quando dado de criação estiver disponivel.
+4. Implementar notificações automáticas para deals em risco (aging acima do limiar).
 
-# 3. Importar CSVs via dashboard do Supabase:
-#    - accounts.csv → tabela accounts
-#    - products.csv → tabela products
-#    - sales_teams.csv → tabela sales_teams
-#    - sales_pipeline.csv → tabela sales_pipeline_staging
+### Limitacoes
 
-# 4. Executar mapeamento de FKs:
-psql $DATABASE_URL -f supabase/import_pipeline.sql
+- Dataset estático com dados antigos (2016-2017). O scoring foi calibrado para esse periodo com o REFERENCE_DATE configurável para produção.
+- Win rates homogeneos (61-65%) limitam diferenciação por setor/produto.Trata-se de uma limitacao do dataset, nao do modelo.
+- 68% dos deals ativos sem conta definida o que resultou em uma penalização do scoring, perdendo a eficacia de account_fit
+- Cache em memória, por se tratar de uma aplicação com dados estáticos. Para produção o ideal seria utilizar o Redis
 
-# 5. Cadastrar usuários na tabela users via Supabase Dashboard
-```
+---
 
-### 4. Docker (deploy)
+## Process Log — Como usei IA
 
-```bash
-docker build -t lead-scorer .
-docker run -p 8501:8501 --env-file .env lead-scorer
-```
+> **Este bloco e obrigatorio.** Sem ele, a submissao e desclassificada.
 
-### Variáveis de ambiente
+### Ferramentas usadas
 
-| Variável | Descrição |
-|----------|-----------|
-| `SUPABASE_URL` | URL do projeto Supabase |
-| `SUPABASE_KEY` | Anon key (respeita RLS) |
-| `SUPABASE_SERVICE_KEY` | Service role key (scoring engine) |
-| `OPENAI_API_KEY` | Chave da API OpenAI |
-| `ALLOWED_ORIGINS` | Origens CORS (default: localhost) |
-| `REFERENCE_DATE` | Data de referência para scoring. Use `auto` para produção (today). Default: `2017-12-31` (dataset) |
+| Ferramenta | Para que usou |
+|------------|--------------|
+| Claude Code (Opus 4) | Arquitetura, implementacao completa (backend + frontend), debugging, validacao |
+| OpenAI GPT-4o-mini | Runtime na aplicacao: explicacoes de deals, recomendacoes, chat assistente |
+| Agente externo (via prompt) | Validacao independente da logica de scoring — revisao critica com 8 acoes prioritarias |
+| Supabase | Banco de dados PostgreSQL, autenticacao OTP, Row Level Security |
+| Vite + React + Tailwind | Frontend SPA com TypeScript |
+| FastAPI | Backend API REST |
+| Recharts | Graficos do dashboard |
 
-## Lógica de Scoring
+### Workflow
 
-Score composto de 0 a 100, calculado para cada oportunidade ativa (Em Negociação + Prospecção).
+1. Discussão de arquitetura (45min): análisei o challenge, debati stack (Streamlit vs React, CSV vs Supabase, local vs cloud), defini scoring com 9 features iniciais, documentei em `infraestrutura_base.md`
+2. Setup Supabase (40min): criei schema com FKs surrogate, importei CSVs, validei integridade dos dados.
+3. Scoring engine v1-v4 (1h30): implementei, testei, identifiquei compressãi, corrigi formulas, enviei para validacao externa, implementei correções e ajustes.
+4. Interface (2h): comecei com Streamlit para testes visuais (funciona mas trava muito), migrei para React + FastAPI, implementei dashboard com gráficos, pipeline com zonas, histórico e chat flutuante.
+5. Refinamentos (40min): Pedi ao Claude seguir a mesma linha de DS do site do G4, implementei dark mode, CRUD de deals, comparação side-by-side, health score, guardrails de IA, traduções PT-BR, icones Lucide. Nessa etapa trabalhei apenas em melhorias.
 
-### Features e pesos
+### Onde a IA errou e como corrigi
 
-| Feature | Peso | O que mede | Como calcula |
-|---------|------|------------|-------------|
-| **pipeline_aging** | 22% | Urgência temporal | Sigmoid decay baseado na distribuição real dos deals ativos. Deals recentes pontuam mais. Usa mediana e IQR dos deals em Engaging como referência — não parâmetros arbitrários. Prospecção = 0.30 (abaixo do neutro). |
-| **potential_value** | 18% | Valor potencial contextualizado | `log1p(preço) / log1p(preço_máximo)` × contexto da conta. Blend: 70% preço do produto + 30% preço × porte da conta. Contas maiores amplificam o potencial do deal. Sem conta = 85% do preço (penalização leve). |
-| **win_rate_combined** | 15% | Histórico de conversão setor + produto | Média do win rate do setor e do produto, com desvio amplificado em relação à média global. Colapsado de duas features separadas após validação de que individualmente tinham variância muito baixa (3-4 pontos percentuais). |
-| **win_rate_account** | 8% | Histórico da conta específica | Win rate da conta ponderado por confiança: `confidence = min(1, total_deals / 10)`. Contas com poucas oportunidades ficam neutras (0.5). Contas com 10+ deals históricos recebem o sinal completo. |
-| **account_fit** | 12% | Porte da empresa | `(log1p(revenue) + log1p(employees)) / 2`, normalizado pelos máximos. Log scale espalha a distribuição que seria dominada por outliers. Deals sem conta definida recebem valor abaixo da mediana (penalização parcial). |
-| **repeat_customer** | 10% | Recorrência de compra | `log1p(compras_anteriores) / log1p(max_compras)`. Contas que já compraram mais vezes têm score mais alto. Log evita saturação. |
-| **agent_load** | 10% | Carga do vendedor | Desvio da média do time: `1 / (1 + |carga - média| / desvio_padrão)`. Ambos os extremos são penalizados — vendedor sobrecarregado (muitos deals) e ocioso (poucos deals). Ótimo = próximo da média. Simétrico. |
-| **agent_performance** | 5% | Win rate do vendedor | `0.5 + deviation × 3` (simétrico, reduzido). Peso baixo intencional para evitar feedback loop negativo: vendedores com win rate menor receberiam scores piores → focariam em menos deals → perderiam mais → loop. |
+1. **Scoring comprimido (v1)**: IA implementou min-max simples fazendo com que o GTK 500 (R$26.768) dominasse o potential_value, 95% dos deals tinham aging=0. Corrigi com log scale e sigmoid baseado em mediana dos deals ativos. Utilizei 3 agentes diferentes (diferentes modelos, inclusive) para analisar o calculo e chegar na versão final.
+2. **Feature duplicada**: `product_price_tier` era copia identica de `potential_value`, ou seja, 5% do peso era desperdicado. Detectado por agente externo, removido.
+3. **Import via porta errada**: IA tentou porta 5432 (transaction mode do PgBouncer) que cancelava statements. Diagnostiquei e mudei para 6543 (session mode). Tive que aplicar alguns ajustes no Pooler do Supabase manualmente para funcionar.
+5. **Feedback loop no agent_performance**: vendedores com win rate baixo recebiam scores piores → focavam em menos deals → perdiam mais. Identificado pelo agente externo, corrigido reduzindo peso de 12% para 5% e simetrizando.
+6. **agent_load penalizava produtividade**: logica invertida (menos deals = melhor) premiava vendedores ociosos. Corrigi para desvio da media (ambos extremos penalizados).
+7. **Colunas fantasma no /api/init**: apos colapsar features, endpoint ainda referenciava colunas antigas. Corrigido na auditoria final.
 
-### Decisões técnicas
+### O que eu adicionei que a IA sozinha nao faria
 
-- **Clamp 0.05-0.95**: todas as features são limitadas para evitar estouros e permitir que todas contribuam.
-- **Deals sem conta (1.425 de 2.089)**: recebem valores abaixo da mediana em account_fit e repeat_customer. Não são zerados (seria punitivo demais) nem recebem mediana (seria generoso demais).
-- **Prospecção = 0.30 no aging**: deals em Prospecção são mais frios que a mediana de Engaging. O valor 0.30 reflete isso sem zerar completamente.
-- **REFERENCE_DATE = 2017-12-31**: o dataset é de Out/2016 a Dez/2017. Todas as métricas temporais usam essa data como "hoje". Em produção, seria `today()`.
-- **Win rate global exclui deals ativos**: calculado apenas sobre Won + Lost (deals fechados).
+1. **Decisao de Supabase centralizado**: a IA sugeriu CSV local. Eu identifiquei que 35 vendedores em escritorios regionais precisam de fonte unica de dados.
+2. **Validacao externa do scoring**: enviei prompt estruturado para agente independente avaliar a logica. A IA que construiu o scoring nao identificaria seus proprios problemas.
+3. **Migracao Streamlit → React**: decisao de UX baseada em experiencia, nao em sugestao da IA.
+4. **Design alinhado ao G4**: pesquisei o site g4business.com e extraí cores (navy/gold), tipografia (Manrope), patterns visuais.
+5. **Traducao contextual**: Won/Lost → Ganho/Perdido, Engaging → Em Negociacao. Decisao de UX para vendedores BR.
+6. **REFERENCE_DATE configuravel**: em vez de hardcoded, parametrizavel via env var, ja que a IA nao teria pensado no cenario de producao vs avaliacao.
 
-### Distribuição resultante
+---
 
-| Métrica | Valor |
-|---------|-------|
-| Range | 39.3 - 77.3 |
-| Média | 53.1 |
-| Desvio padrão | 6.3 |
-| Deals >= 70 (Alta Prioridade) | 21 (1.0%) |
-| Deals >= 55 | 736 (35.2%) |
-| Deals com conta (média) | 57.8 |
-| Deals sem conta (média) | 50.9 |
+## Evidencias
 
-## Funcionalidades
+- [ ] Git history (commits no repositorio)
+- [x] Documento de arquitetura iterado: `infraestrutura_base.md`
+- [x] Schema SQL versionado: `supabase/schema.sql`
+- [x] Process log detalhado: `PROCESS_LOG.md`
+- [x] Testes automatizados: `test_scoring.py` (10 checks) + `test_pipeline.py` (12 checks)
+- [x] Build de producao limpo (TypeScript + Vite, zero erros)
+- [x] Aplicacao funcional deployada via Docker no EasyPanel
 
-### Para o vendedor
-- **Foco Hoje**: top 5 oportunidades com explicações automáticas
-- **Zonas de prioridade**: Alta / Atenção / Baixa com valor total por zona
-- **Explicação por deal**: fatores positivos, pontos de atenção e contexto
-- **Análise IA**: recomendação de próximo passo por deal (GPT-4o-mini)
-- **Chat IA**: perguntas livres sobre pipeline, performance e estratégia
-- **Criar oportunidade**: formulário com vendedor, produto, conta e etapa
-- **Classificar**: marcar deal como Ganho (com valor) ou Perdido
-- **Filtros**: por etapa, produto, vendedor, escritório (colapsáveis com badge de contagem)
-- **Export CSV**: download dos deals filtrados
-- **Comparar oportunidades**: side-by-side de 2 deals com recomendação automática
-- **Criar oportunidade**: formulário com vendedor, produto, conta, etapa
-- **Classificar deal**: marcar como Ganho (com valor) ou Perdido diretamente no card
-- **Dark/Light mode**: toggle na sidebar com persistência no localStorage
+---
 
-### Para o gestor
-- Dashboard com gráficos: distribuição por prioridade, pipeline por stage, potencial por produto, evolução mensal
-- **Pipeline Health Score**: nota composta (0-100) com 5 indicadores (volume, qualidade, conversão, score médio, risco)
-- Ranking de performance do time
-- Top contas por potencial
-- Visão consolidada de todos os vendedores
+## Documentação
 
-### Chat IA (flutuante)
-- Botão fixo no canto inferior direito
-- Contexto completo do pipeline injetado (métricas, zonas, top deals, distribuições, critérios de score)
-- Guardrails contra prompt injection, invenção de dados e vazamento de informações entre roles
-- Output em HTML formatado (não markdown)
-- Sugestões de perguntas para onboarding
-
-### Segurança
-- Auth OTP por email (Supabase Auth)
-- Auto-criação de perfil no primeiro login como admin (para facilitar avaliação — em produção, seria "vendedor")
-- 3 roles: admin, vendedor, manager
-- RLS no banco de dados com 10 policies + 3 helper functions
-- Service key apenas no backend (nunca exposta ao frontend)
-- Validação de token JWT em todos os endpoints com cache de 5min
-- CORS configurável via env var (não wildcard)
-
-## Limitações
-
-- **Dataset estático**: os dados são de 2016-2017. Não há atualização em tempo real. Em produção, conectaria a um CRM.
-- **Win rates homogêneos**: setores e produtos têm taxas de conversão muito similares (61-65%). A diferenciação nesse eixo é limitada pelo dataset.
-- **1.425 deals sem conta**: ~68% dos deals ativos não têm conta definida. O scoring penaliza parcialmente mas não consegue usar account_fit e repeat_customer de forma eficaz.
-- **Score máximo ~77**: o teto teórico com esse dataset é ~85. Nenhum deal combina todos os fatores no máximo simultaneamente.
-- **Testes**: 22 testes de validação (10 scoring + 12 pipeline) passam, mas não são testes unitários tradicionais (pytest).
-- **Cache em memória**: adequado para single-worker. Multi-worker precisaria de Redis ou similar.
-- **IA usa `dangerouslySetInnerHTML`**: output da OpenAI renderizado como HTML. Risco controlado (fonte confiável) mas não ideal.
-
-## Correções aplicadas nos dados
-
-| Correção | Arquivo | De → Para |
-|----------|---------|-----------|
-| Nome do produto | sales_pipeline.csv | "GTXPro" → "GTX Pro" (1.480 registros) |
-| Setor | accounts.csv | "technolgy" → "technology" (12 registros) |
-| Conta vazia | sales_pipeline | 1.425 deals sem conta → placeholder "(Não definida)" |
-
-## Estrutura do projeto
-
-```
-lead-scorer/
-├── api/main.py              # FastAPI (13 endpoints, auth JWT)
-├── scoring/
-│   ├── engine.py             # Score pipeline vetorizado (8 features)
-│   └── features.py           # Features + explicações + pesos
-├── ai/
-│   └── prompts.py            # System prompts + guardrails (HTML output)
-├── web/                      # React 18 + TypeScript + Vite + Tailwind
-│   └── src/components/       # 16 componentes (dark mode, compare, health)
-├── test_scoring.py           # 10 validações do scoring engine
-├── test_pipeline.py          # 12 validações do pipeline (CRUD, filtros, export)
-├── supabase/
-│   ├── schema.sql            # 5 tabelas + RLS + constraints
-│   └── import_pipeline.sql   # Mapeamento CSV → FKs
-├── Dockerfile
-├── requirements.txt
-├── .env.example
-└── PROCESS_LOG.md
-```
+DOCS.md
+_Submissao enviada em: 31/03/2026_
