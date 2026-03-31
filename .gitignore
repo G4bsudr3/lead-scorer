@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.env
+web/.env
+.streamlit/secrets.toml
+.venv/
+node_modules/
+dist/
+*.log
