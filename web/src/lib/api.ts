@@ -1,5 +1,8 @@
 import { supabase } from './supabase'
 
+// URL da API — aponta para o domínio público da API no EasyPanel
+const API_BASE = 'https://caseg4-api.t3xbnj.easypanel.site'
+
 async function getToken(): Promise<string> {
   const { data } = await supabase.auth.getSession()
   return data.session?.access_token || ''
@@ -7,7 +10,7 @@ async function getToken(): Promise<string> {
 
 async function apiFetch(path: string, options: RequestInit = {}) {
   const token = await getToken()
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
